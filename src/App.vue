@@ -36,7 +36,7 @@ export default {
       ToDoItems:[
         {id:crypto.randomUUID(),label:"Learn Vue",done:true},
         {id:crypto.randomUUID(),label:"Learn Go",done:false},
-        {id:crypto.randomUUID(),label:"Make loging authentication page",done:false},
+        {id:crypto.randomUUID(),label:"Make login authentication page",done:false},
         {id:crypto.randomUUID(),label:"Finish Leetcode questions",done:false},
       ]
     };
