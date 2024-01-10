@@ -1,5 +1,6 @@
 <template>
     <form @submit.prevent="onSubmit">
+        <h2 class="label-wrapper">
         <label for="new-todo-input">What needs to be done </label>
         <input
             type="text"
@@ -7,7 +8,8 @@
             name="new-todo"
             autocomplete="off"
             v-model.lazy.trim="label"/>
-        <button type="submit">Add</button>
+        <button type="submit" class="btn btn__primary btn__lg">Add</button>
+        </h2>
     </form>
 </template>
 
