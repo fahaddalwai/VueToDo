@@ -3,7 +3,7 @@
     <h1>To-Do List</h1>
     <to-do-form @todo-added="addToDo"></to-do-form>
     <ul>
-      <li v-for="item in ToDoItems" :key="item.id"> //For each item in the the array its making an instance of todo
+      <li v-for="item in ToDoItems" :key="item.id">
         <to-do-item :label="item.label" :done="item.done" :id="item.id"></to-do-item>
       </li>
     </ul>

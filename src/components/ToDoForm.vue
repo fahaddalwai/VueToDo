@@ -19,6 +19,7 @@
                     return;
                 }
                 this.$emit("todo-added",this.label);  //event name is todo-added
+                this.label=""
             }
         },
         data(){
