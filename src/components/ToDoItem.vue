@@ -20,7 +20,7 @@
       
     </div>
     
-    <to-do-item-edit-form v-else :id="id" :label="label"></to-do-item-edit-form>
+    <to-do-item-edit-form v-else :id="id" :label="label" @item-edited="itemEdited" @edit-cancelled="editCancelled"></to-do-item-edit-form>
 
   </template>
 
@@ -37,9 +37,14 @@ export default{
     },
     data(){ //Used to store and alter variables(2 way)
         return{
-            isDone:this.done, //isDone variable takes the value of the done prop
+            //isDone variable takes the value of the done prop
             isEditing: false
         }
+    },
+    computed: {
+      isDone() {
+    return this.done;
+    }
     },
     methods: {
     deleteToDo() {
