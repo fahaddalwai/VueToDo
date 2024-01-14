@@ -17,7 +17,7 @@
 <script>
 import toDoItem from "./components/ToDoItem.vue"
 import toDoForm from "./components/ToDoForm.vue"
-
+import axios from 'axios';
 export default {
   
   name: "app",
@@ -34,30 +34,59 @@ export default {
   data(){
     return{
       ToDoItems:[
-        {id:crypto.randomUUID(),label:"Learn Vue",done:true},
-        {id:crypto.randomUUID(),label:"Learn Go",done:false},
-        {id:crypto.randomUUID(),label:"Make login authentication page",done:false},
-        {id:crypto.randomUUID(),label:"Finish Leetcode questions",done:false},
+        
       ]
     };
 
   },
+  mounted() {
+    this.fetchToDoItems();
+  },
   methods:{
-  addToDo(toDoLabel){
-    this.ToDoItems.push({id:crypto.randomUUID(), label: toDoLabel, done: false});
+    async fetchToDoItems() {
+      try {
+        const response = await axios.get('http://localhost:8080/todo');
+        this.ToDoItems = response.data;
+      } catch (error) {
+        console.error(error);
+      }
+    },
+
+  async addToDo(toDoLabel){
+    try {
+        const response = await axios.post('http://localhost:8080/todo', { label: toDoLabel, done: false });
+        this.ToDoItems.push(response.data);
+      } catch (error) {
+        console.error(error);
+      }
   },
 
-  updateDoneStatus(toDoId){
+  async updateDoneStatus(toDoId){
     const toDoToUpdate = this.ToDoItems.find((item) => item.id === toDoId)
     toDoToUpdate.done = !toDoToUpdate.done
+    try {
+        await axios.put(`http://localhost:8080/todo/${toDoId}`, toDoToUpdate);
+      } catch (error) {
+        console.error(error);
+      }
   },
-  deleteToDo(toDoId) {
-  const itemIndex = this.ToDoItems.findIndex((item) => item.id === toDoId);
-  this.ToDoItems.splice(itemIndex, 1);
+  async deleteToDo(toDoId) {
+    try {
+        await axios.delete(`http://localhost:8080/todo/${toDoId}`);
+        const itemIndex = this.ToDoItems.findIndex((item) => item.id === toDoId);
+        this.ToDoItems.splice(itemIndex, 1);
+      } catch (error) {
+        console.error(error);
+      }
   },
-  editToDo(toDoId, newLabel) {
+  async editToDo(toDoId, newLabel) {
   const toDoToEdit = this.ToDoItems.find((item) => item.id === toDoId);
   toDoToEdit.label = newLabel;
+  try {
+        await axios.put(`http://localhost:8080/todo/${toDoId}`, toDoToEdit);
+      } catch (error) {
+        console.error(error);
+      }
   }
 }
   
