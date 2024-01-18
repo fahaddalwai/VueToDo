@@ -12,6 +12,7 @@ import (
     "github.com/golang-jwt/jwt/v5"
     "golang.org/x/crypto/bcrypt"
     "fmt"
+    "strings"
 )
 
 // ToDoItem represents a single todo item.
@@ -19,6 +20,7 @@ type ToDoItem struct {
     ID    string `json:"id"`
     Label string `json:"label"`
     Done  bool   `json:"done"`
+    Username string `json:"username"`
 }
 
 type User struct {
@@ -58,18 +60,24 @@ func main() {
         AllowHeaders: []string{"Origin", "Content-Type", "Accept"},
     }))
 
-    r.GET("/todo", getToDoItems)
-    r.POST("/todo", addToDoItem)
-    r.PUT("/todo/:id", updateToDoItem)
-    r.DELETE("/todo/:id", deleteToDoItem)
+    r.GET("/todo", TokenAuthMiddleware(), getToDoItems)
+    r.POST("/todo", TokenAuthMiddleware(), addToDoItem)
+    r.PUT("/todo/:id", TokenAuthMiddleware(), updateToDoItem)
+    r.DELETE("/todo/:id", TokenAuthMiddleware(), deleteToDoItem)
     r.POST("/signup", Signup)
     r.POST("/login", Login)
-
+    
     r.Run(":8080") // Listen and serve on 0.0.0.0:8080
 }
 
 func getToDoItems(c *gin.Context) {
-    rows, err := db.Query("SELECT id, label, done FROM todo_items")
+    username, exists := c.Get("username")
+    if !exists {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+        return
+    }
+
+    rows, err := db.Query("SELECT id, label, done FROM todo_items WHERE username = ?", username)
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
@@ -99,9 +107,16 @@ func addToDoItem(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
+
+    username, exists := c.Get("username")
+    if !exists {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
+        return
+    }
+    item.Username = username.(string)
     item.ID = uuid.NewString()
 
-    _, err := db.Exec("INSERT INTO todo_items (id, label, done) VALUES (?, ?, ?)", item.ID, item.Label, item.Done)
+    _, err := db.Exec("INSERT INTO todo_items (id, label, done, username) VALUES (?, ?, ?, ?)", item.ID, item.Label, item.Done, item.Username)
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
@@ -109,6 +124,43 @@ func addToDoItem(c *gin.Context) {
 
     c.JSON(http.StatusCreated, item)
 }
+
+func TokenAuthMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        authHeader := c.GetHeader("Authorization")
+        if authHeader == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+            c.Abort()
+            return
+        }
+
+        // Split the Authorization header to get the token part.
+        parts := strings.Split(authHeader, " ")
+        if len(parts) != 2 || parts[0] != "Bearer" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header format must be Bearer {token}"})
+            c.Abort()
+            return
+        }
+
+        tokenString := parts[1]
+
+        claims := &jwt.RegisteredClaims{}
+        token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+            return jwtKey, nil
+        })
+
+        if err != nil || !token.Valid {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+            c.Abort()
+            return
+        }
+
+        c.Set("username", claims.Subject)
+        c.Next()
+    }
+}
+
+
 
 func updateToDoItem(c *gin.Context) {
     id := c.Param("id")

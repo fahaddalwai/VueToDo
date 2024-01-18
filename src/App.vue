@@ -1,6 +1,9 @@
 <template>
   <div id="app">
     <h1>To-Do List</h1>
+    <!-- Login and Signup Components -->
+    <login v-if="!isLoggedIn" @login-submit="handleLogin"></login>
+  <signup v-if="!isLoggedIn" @signup-submit="handleSignup"></signup>
     <to-do-form @todo-added="addToDo"></to-do-form>
 
     <h2 id="list-summary">{{listSummary}}</h2>
@@ -17,13 +20,18 @@
 <script>
 import toDoItem from "./components/ToDoItem.vue"
 import toDoForm from "./components/ToDoForm.vue"
+import Login from "./components/LoginForm.vue"
+import Signup from "./components/SignupForm.vue"
 import axios from 'axios';
+
 export default {
   
   name: "app",
   components: {
     toDoItem,
-    toDoForm
+    toDoForm,
+    Login,
+    Signup
   },
   computed:{
     listSummary(){
@@ -34,62 +42,115 @@ export default {
   data(){
     return{
       ToDoItems:[
-        
-      ]
+    ],
+    jwtToken: '', // JWT Token
+    isLoggedIn: false, // Add this line
     };
 
   },
-  mounted() {
-    this.fetchToDoItems();
-  },
+  
   methods:{
-    async fetchToDoItems() {
+
+    async handleLogin(credentials) {
       try {
-        const response = await axios.get('http://localhost:8080/todo');
+        const response = await axios.post('http://localhost:8080/login', credentials);
+        
+        this.jwtToken = response.data.token;
+        console.log(this.jwtToken);
+        this.isLoggedIn = true;
+        this.fetchToDoItems();
+      } catch (error) {
+        console.error(error);
+      }
+    },
+
+    async handleSignup(userInfo) {
+      try {
+        await axios.post('http://localhost:8080/signup', userInfo);
+        console.log("The user has successfuly logged in")
+        this.isLoggedIn = true;
+        this.fetchToDoItems();
+      } catch (error) {
+        console.error(error);
+      }
+    },
+
+
+
+    async fetchToDoItems() {
+      if (!this.jwtToken) return; // Ensure JWT token is available
+      try {
+
+        const response = await axios.get('http://localhost:8080/todo', {
+          headers: {
+            'Authorization': `Bearer ${this.jwtToken}`
+          }
+        });
         this.ToDoItems = response.data;
       } catch (error) {
         console.error(error);
       }
     },
 
-  async addToDo(toDoLabel){
-    try {
-        const response = await axios.post('http://localhost:8080/todo', { label: toDoLabel, done: false });
+    async addToDo(toDoLabel) {
+      if (!this.jwtToken) return;
+      try {
+        const response = await axios.post('http://localhost:8080/todo', { label: toDoLabel, done: false }, {
+          headers: {
+            'Authorization': `Bearer ${this.jwtToken}`
+          }
+        });
         this.ToDoItems.push(response.data);
       } catch (error) {
         console.error(error);
       }
-  },
+    },
 
-  async updateDoneStatus(toDoId){
-    const toDoToUpdate = this.ToDoItems.find((item) => item.id === toDoId)
-    toDoToUpdate.done = !toDoToUpdate.done
-    try {
-        await axios.put(`http://localhost:8080/todo/${toDoId}`, toDoToUpdate);
+    async updateDoneStatus(toDoId) {
+      if (!this.jwtToken) return;
+      const toDoToUpdate = this.ToDoItems.find((item) => item.id === toDoId);
+      toDoToUpdate.done = !toDoToUpdate.done;
+      try {
+        await axios.put(`http://localhost:8080/todo/${toDoId}`, toDoToUpdate, {
+          headers: {
+            'Authorization': `Bearer ${this.jwtToken}`
+          }
+        });
       } catch (error) {
         console.error(error);
       }
-  },
+    },
+
   async deleteToDo(toDoId) {
-    try {
-        await axios.delete(`http://localhost:8080/todo/${toDoId}`);
+      if (!this.jwtToken) return;
+      try {
+        await axios.delete(`http://localhost:8080/todo/${toDoId}`, {
+          headers: {
+            'Authorization': `Bearer ${this.jwtToken}`
+          }
+        });
         const itemIndex = this.ToDoItems.findIndex((item) => item.id === toDoId);
         this.ToDoItems.splice(itemIndex, 1);
       } catch (error) {
         console.error(error);
       }
-  },
-  async editToDo(toDoId, newLabel) {
-  const toDoToEdit = this.ToDoItems.find((item) => item.id === toDoId);
-  toDoToEdit.label = newLabel;
-  try {
-        await axios.put(`http://localhost:8080/todo/${toDoId}`, toDoToEdit);
+    },
+
+    async editToDo(toDoId, newLabel) {
+      if (!this.jwtToken) return;
+      const toDoToEdit = this.ToDoItems.find((item) => item.id === toDoId);
+      toDoToEdit.label = newLabel;
+      try {
+        await axios.put(`http://localhost:8080/todo/${toDoId}`, toDoToEdit, {
+          headers: {
+            'Authorization': `Bearer ${this.jwtToken}`
+          }
+        });
       } catch (error) {
         console.error(error);
       }
+    }
   }
-}
-  
 };
 
 </script>
