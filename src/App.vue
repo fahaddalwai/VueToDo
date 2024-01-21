@@ -61,6 +61,8 @@ export default {
         this.fetchToDoItems();
       } catch (error) {
         console.error(error);
+
+        //
       }
     },
 
